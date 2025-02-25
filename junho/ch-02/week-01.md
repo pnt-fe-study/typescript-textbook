@@ -46,3 +46,38 @@
     tuple = [3, true[;
     tuple = [5];
     ```
+
+### 타입으로 쓸 수 있는 것을 구분하자
+- Date, Math, Error, String, Object, Number, Boolean 등과 같은 내장 객체는 타입으로 사용할 수 있습니다.
+- String, Object, Number, Boolean, Symbol은 타입으로 사용하는 것을 권장하지 않습니다.
+  - Number 간에 연산자를 사용할 수 없고, string에 String을 대입할 수 없습니다.
+  - Object 타입인데도 문자열 대입이 가능합니다.
+- 변수에 typeof를 앞에 붙여 타입으로 사용할 수 있습니다.
+- 클래스의 이름은 typeof 없이도 타입으로 사용할 수 있습니다.
+  - ```ts
+    class Person {
+      name: string;
+      constructor(name: string) {
+        this.name = name;
+      }
+    }
+    const person: Person = new Person('zero');
+    ```
+
+### 유니언 타입으로 OR 관계를 표현하자
+- 유니언 타입은 하나의 변수가 여러 타입을 가질 수 있는 가능성을 표시하는 것입니다.
+- pasreInt는 자바스크립트에서 pasreInt(1)과 parseInt('1')이 모두 정상적으로 동작 하지만, 타입스크립트에서는 parseInt('1')만 가능합니다.
+- 타입스크립트는 if문을 인식합니다.
+- 유니언 타입으로부터 정확한 타입을 찾아내는 기법을 타입 좁히기라고 부릅니다.
+  - ```ts
+    let strOrNum: string | number = 'hello';
+    strOrNum = 123;
+
+    if (typeof strOrNum === 'number') {
+      strOrNum.toFixed();
+    }
+    ```
+- 유니언은 타입 사이에 | 연산자를 쓸 수 있는 것 뿐만 아니라 타입 앞에도 사용할 수 있습니다.
+  - ```ts
+    type Union = | string | boolean | number | null;
+    ```
