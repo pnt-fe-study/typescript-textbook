@@ -108,3 +108,56 @@
   - 사용자가 함수의 반환값을 사용하지 못하도록 제한한다.
   - 반환값을 사용하지 않는 콜백 함수를 타이핑할 때 사용한다.
 - never 타입에는 어떠한 타입도 대입할 수 없습니다.
+  - 함수 선언문은 throw를 하더라도 반환값의 타입이 void입니다. 반면 함수 표현식은 never가 됩니다.
+- 타입 간 대입 가능표
+  |->|any|unknown|{}|void|undefined|null|never
+  |:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
+  |any|-|O|O|O|O|O|X|
+  |unknown|O|-|X|X|X|X|X|
+  |{}|O|O|-|X|X|X|X|
+  |void|O|O|X|-|X|X|X|
+  |undefined|O|O|X|O|-|X|X|
+  |null|O|O|X|X|X|-|X|
+  |never|O|O|O|O|O|O|-|
+
+### 타입 별칭으로 타입에 이름을 붙이자
+- 타입스크립트에서 기존 타입에 새로운 이름을 붙인 것을 타입 별칭이라고 합니다.
+- 타입 별칭은 주로 복잡하거나 가독성이 낮은 타입에 사용합니다.
+
+### 인터페이스로 객체를 타이핑하자
+- 인터페이스로 배열과 함수도 타이핑할 수 있습니다.
+  - ```ts
+    interface Func {
+    (x: number, y:number): number;
+    }
+    
+    const add: Func = (x,y) => x + y;
+    
+    interface Arr {
+        length: number;
+        [key: number]: string;
+    }
+
+    const arr: Arr = ['3', '5', '7'];
+    ```
+    - 인터페이스의 속성 키 [key: number]는 이 객체의 length를 제외한 속성 키가 전부 number라는 의미입니다.
+    - 이와 같은 문법을 인덱스 시그니처라고 부릅니다.
+    - 일반적으로 객체의 속성 키는 문자열과 심볼만 가능하지만, 자바스크립트가 다른 자료형의 값이 속성 키로 들어오면 알아서 문자열로 변환합니다.
+    - 타입스크립트에서 속성 키로 가능한 타입은 string, number, symbol 입니다.
+- 값은 이름으로 여러 인터페이스를 선언할 수 있으며 인터페이스가 하나로 합쳐집니다. 이를 선언 합병이라 부릅니다.
+  - ```ts
+    interface Merge {
+      one: string;
+    }
+
+    interface Merge {
+      two: number;
+    }
+
+    const example: Merge = {
+      one: '1',
+      two: 2,
+    }
+    ```
+    - 다만, 인터페이스 간에 속성이 겹치는데 타입이 다를 경우 에러가 발생합니다.
+    - 속성이 같은 경우 타입도 같아야 합니다.
