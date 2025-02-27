@@ -34,7 +34,7 @@
   - ```ts
     const [a, ...rest] = ['hi', 1, 23, 456];
     // const a: string;
-    // const rest: [number, number, number[
+    // const rest: [number, number, number]
 
     const [b, ...rest2]: [string, ...number[]] = ['hi', 1, 23, 456];
     // const b: string;
