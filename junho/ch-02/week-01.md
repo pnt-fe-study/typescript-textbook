@@ -43,7 +43,7 @@
 - 타입 뒤에 ?가 있으면 옵셔널 수식어로 해당 자리에 값이 있어도 그만, 없어도 그만이라는 의미입니다.
   - ```ts
     let tuple: [number, boolean?, string?] = [1, false, 'hi'];
-    tuple = [3, true[;
+    tuple = [3, true];
     tuple = [5];
     ```
 
