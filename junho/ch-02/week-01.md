@@ -128,7 +128,7 @@
 - 인터페이스로 배열과 함수도 타이핑할 수 있습니다.
   - ```ts
     interface Func {
-    (x: number, y:number): number;
+      (x: number, y:number): number;
     }
     
     const add: Func = (x,y) => x + y;
