@@ -52,7 +52,7 @@
       name: 'zero',
       age: 28,
     };
-    type Kyes = keyof typeof obj;
+    type Keys = keyof typeof obj;
     // type Keys = 'hello' | 'name' | 'age'
 
     type Values = typeof obj[Keys];
