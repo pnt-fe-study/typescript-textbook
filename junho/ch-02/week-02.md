@@ -87,7 +87,7 @@
 - 매핑된 객체 타입이란 기존의 다른 타입으로부터 새로운 객체 속성을 만들어내는 타입을 의미합니다.
 - 인터페이스에서는 쓰지 못하고 타입 볊칭에서만 사용할 수 있습니다.
   - ```ts
-    type HelloANdHi = {
+    type HelloAndHi = {
       [key in 'hello' | 'hi']: string;
     };
     /*
