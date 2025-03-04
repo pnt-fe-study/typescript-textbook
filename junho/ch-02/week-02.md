@@ -146,4 +146,40 @@
     }
     */
     ```
-    
+
+## 타입을 집합으로 생각하자(유니언, 인터섹션)
+- `유니언(|)` 연산자는 합집합 역할을 합니다.
+- `인터섹션(&)` 연산자는 교집합 역할을 합니다.
+- 원소가 존재하지 않는 집합은 `공집합`이라고 부릅니다.
+  - 타입스크립트에서는 `never`가 `공집합`의 역할을 맡습니다.
+    - ```ts
+      type nev = string & number;
+      //type nev = never;
+      ```
+- 타입스크립트에서 전체집합은 `unknown`입니다.
+- 타입스크립트에서는 좁은 타입을 넓은 타입에 대입할 수 있습니다.
+  - 반대로 넓은 타입에서 좁은 타입은 대입할 수 없습니다.
+- `항상 좁은 타입에서 넓은 타입으로 대입해야 합니다.`
+  - ```ts
+    type A = string | boolean;
+    type B = boolean | number;
+    type C = A & B;
+    // type C = boolean
+
+    type D = {} & (string | null);
+    // type D = string
+
+    type E = string & boolean;
+    // type E = never;
+
+    type F = unknown | {};
+    // type F = unknown
+
+    type G = never & {};
+    // type G = never
+    ```
+    - 한 가지 특이한 점이 있습니다. null/undefined를 제외한 원시 자료형과 비어 있지 않은 객체를 & 연산할 때는 never가 되지 않습니다.
+      - ```ts
+        type H = { a: 'b' } & number;
+        // type H = { a: 'b'} & number;
+        ```
