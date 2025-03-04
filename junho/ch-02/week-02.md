@@ -1,4 +1,4 @@
-## 객체의 속성과 메서드에 적용되는 특징을 알자
+## 2.10 객체의 속성과 메서드에 적용되는 특징을 알자
 - 객체의 속성도 옵셔널이나 readonly 수식어가 가능합니다.
 - 객체 리터럴을 대입했냐, 변수를 대입했냐에 따라 타입 검사 방식이 달라집니다.
   - ```ts
@@ -27,7 +27,7 @@
   - 객체 리터럴을 대입하면 `잉여 속성 검사`가 실행됩니다.
   - `잉여 속성 검사`는 타입 선언에서 선언하지 않은 속성을 사용할 때 에러를 표시하는 것을 의미합니다.
 
-### 인덱스 접근 타입
+### 2.10.1 인덱스 접근 타입
 - ```ts
   type Animal = {
     name: string;
@@ -83,7 +83,7 @@
     }
     ```
 
-### 매핑된 객체 타입
+### 2.10.2 매핑된 객체 타입
 - 매핑된 객체 타입이란 기존의 다른 타입으로부터 새로운 객체 속성을 만들어내는 타입을 의미합니다.
 - 인터페이스에서는 쓰지 못하고 타입 볊칭에서만 사용할 수 있습니다.
   - ```ts
@@ -147,7 +147,7 @@
     */
     ```
 
-## 타입을 집합으로 생각하자(유니언, 인터섹션)
+## 2.11 타입을 집합으로 생각하자(유니언, 인터섹션)
 - `유니언(|)` 연산자는 합집합 역할을 합니다.
 - `인터섹션(&)` 연산자는 교집합 역할을 합니다.
 - 원소가 존재하지 않는 집합은 `공집합`이라고 부릅니다.
@@ -183,3 +183,132 @@
         type H = { a: 'b' } & number;
         // type H = { a: 'b'} & number;
         ```
+        
+## 2.12 타입도 상속이 가능하다
+- interface는 extends 예약어를 사용해 상속할 수 있습니다.
+  - ```ts
+    interface Animal {
+      name: string;
+    }
+
+    interface Dog extends Animal {
+      bark(): void;
+    }
+    ```
+- 타입 별칭에서 & 연산자를 사용해 상속할 수 있습니다.
+  - ```ts
+    type Animal = {
+      name: string;
+    }
+
+    type Dog = Animal & {
+      bark(): void;
+    }
+    ```
+- 상속 받는다는 것은 `더 좁은 타입`이 된다는 것을 의미한다.
+- 타입 별칭이 인터페이스를 상속할 수도 있고, 인터페이스가 타입 별칭을 상속할 수도 있습니다.
+  - ```ts
+    interface Animal {
+      name: string;
+    }
+    type Dog = Animal & {
+    bark(): void;
+    }
+    ```
+- 한 번에 여러 타입을 상속할 수도 있습니다.
+  - ```ts
+    type Animal = {
+      name: string;
+    }
+    interface Dog extends Animal {
+      bark(): void;
+    }
+    interface Cat extends Animal {
+      meow(): void;
+    }
+
+    interface DogCat extends Dog, Cat {}
+    ```
+- 상속할 때 부모 속성의 타입을 변경할 수도 있습니다.
+  - ```ts
+    interface Merge {
+      one: string;
+      two: string;
+    }
+    interface Merge2 extends Merge {
+      one: 'h' | 'w';
+      two: 123;
+    }
+    ```
+    - 다만 완전히 다른 타입으로 변경하면 에러가 발생합니다.
+    - 부모의 속성 타입을 바꾸더라도 부모에 대입할 수 있는 타입으로 바꿔야 합니다.
+
+## 2.13 객체 간에 대입할 수 있는지 확인하는 법을 배우자
+- 추상적일수록 넓은 타입이며 구체적일수록 더 좁은 타입입니다.
+  - ```ts
+    type A = { name: string };
+    type B = { name: string, age: number };
+    ```
+    - B가 더 구체적인 값을 가지고 있어 A가 더 넓은 타입입니다.
+- 튜플은 배열보다 좁은 타입입니다.
+- 튜플이나 배열에 readonly 수식어가 있으면 더 넓은 타입입니다.(일반 배열은 getter, setter 가능, readonly 배열은 getter만 가능)
+- 객체 속성에 옵셔널이 붙으면 더 넓은 타입입니다.
+- 배열과 다르게 객체에서는 속성에 readonly가 붙어도 서로 대입할 수 있습니다.
+
+### 2.13.1 구조적 타이밍
+- 타입스크립트에서 모든 속성이 동일하면 객체 타입의 이름이 다르더라도 동일한 타입으로 취급합니다.
+  - ```ts
+    interface Money {
+      amount: number;
+      unit: string;
+    }
+
+    interface Liter {
+      amount: number;
+      unit: string;
+    }
+
+    const liter: Liter = { amount: 1, unit: 'liter' };
+    const circle: Money = liter;
+    ```
+    - 객체를 어떻게 만들었든 간에 구조가 같으면 같은 객체로 인식하는 것을 구조적 타이핑이라고 부릅니다.
+- B 타입이 A 타입이기 위한 조건이 충족되면 구조적 타이핑 관점에서 A 타입이라고 볼 수 있습니다.
+  - ```ts
+    interface A {
+        name: string;
+    }
+    
+    interface B {
+        nmae: string;
+        age: number;
+    }
+    
+    const aObj = {
+        name: 'zero',
+    }
+    
+    const bObj = {
+        name: 'zero',
+        age: 32
+    }
+    
+    const bToA: A = bObj;
+    ```
+- 구조적으로 다르게 만들기 위해 브랜드 속성을 사용하여 브랜딩 합니다.
+  - ```ts
+    interface Money {
+      __type: 'money';
+      amount: number;
+      unit: string;
+    }
+
+    interface Liter {
+      __type: 'liter';
+      amount: number;
+      unit: string;
+    }
+
+    const liter: Liter = { amount: 1, unit: 'liter', __type: 'liter' };
+    const circle: Money = liter;
+    // Type 'Liter' is not assignable to type 'Money'. Types of property ...
+    ```
