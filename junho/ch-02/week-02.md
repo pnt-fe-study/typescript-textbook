@@ -421,3 +421,81 @@
       onlyBoolean<true>(); // ❌ 에러 발생!
       ```
       - 모순이 발생할 수 있습니다.
+
+## 2.15 조건문과 비슷한 컨디셔널 타입이 있다
+> 특정 타입 extends 다른 타입 ? 참 타입 : 거짓 타입
+  - ```ts
+    type A1 = string;
+    type B1 = A1 extends string ? number : boolean;
+    // type B1 = number
+    ```
+- extends 에약어가 여러 곳에서 사용되어 헷갈릴 수 있습니다. 명시적으로 extends를 사용해야 참이 되는 것은 아닙니다.
+  - ```ts
+    interface X {
+        x: number;
+    }
+    
+    interface XY {
+        x: number;
+        y: number;
+    }
+    
+    interface YX extends X {
+        y: number;
+    }
+    
+    type A = XY extends X ? string : number;
+    // type A = string
+    
+    type B = YX extends X ? string : number;
+    //type B = string
+    ```
+- never는 모든 타입에 대입할 수 있어 모든 타입을 extends할 수 있습니다.
+  - ```ts
+    type Result = never extends string ? true : false;
+    // type Result = true
+    ```
+- never와 컨디셔널 타입을 사용해 특정 타입 속성을 제거할 수 있습니다.
+  - ```ts
+    type OmitByType<O,T> = {
+        [K in keyof O as O[K] extends T ? never : K]: O[K];
+    }
+    
+    type Result = OmitByType<{
+        name: string;
+        age: number;
+        married: boolean;
+        rich: boolean;
+    }, boolean>;
+    /*
+    type Result = {
+        name: string;
+        age: number;
+    }
+    */
+    ```
+    - keyof O를 통해 객체 O의 모든 속성 키(K)를 가져옵니다.
+    - O[K] extends T ? never : K 에서 속성의 타입이 T 이면 never 가 됩니다.
+    - never로 변한된 속성은 자동으로 삭제됩니다.
+    - 남아 있는 속성들만 새로운 객체 타입으로 반환됩니다.
+- 컨디셔널 타입을 자바스크립트의 삼항연산자처럼 중첩해서 사용할 수 있습니다.
+  - ```ts
+    type ChooseArray<A> = A extends string 
+    ? string[] 
+    : A extends boolean ? boolean[] : never;
+
+    type StringArray = ChooseArray<string>;
+    // type StringArray = string[]
+    
+    type BooleanArray = ChooseArray<boolean>;
+    // type BooleanArray = boolean[]
+    ```
+- 인데스 접근 타입으로 컨디셔널 타입을 사용할 수 있습니다.
+  - ```ts
+    type A1 = string;
+    type B1 = A1 extends string ? number : boolean;
+    type B2 = {
+        't': number;
+        'f': boolean;
+    }[A1 extends string ? 't' : 'f'];
+    ```
