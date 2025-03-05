@@ -312,3 +312,82 @@
     const circle: Money = liter;
     // Type 'Liter' is not assignable to type 'Money'. Types of property ...
     ```
+
+## 2.14 제네릭으로 타입을 함수처럼 사용하자
+- 제네릭을 사용해서 중복을 제거할 수 있습니다.
+  - ```ts
+    interface Person<N, A> {
+      type: 'human',
+      race: 'yellow',
+      name: N,
+      age: A,
+    }
+    interface Zero extends Person<'zero', 28> {}
+    interface Nero extends Person<'nero', 32> {}
+    ```
+- 타입 매개변수의 개수와 타입 인수의 개수가 일치하지 않으면 에러가 발생합니다.
+- 클래스와 타입 별칭, 함수도 제네릭을 가질 수 있습니다.
+  - 함수에서는 함수 선언문이냐 표현식이냐에 따라 제네릭 표기 위치가 다르므로 주의해야 합니다.
+- interface와 type 간에 교차 사용도 가능합니다. 
+- 정리하면 다음과 같은 위치에서 사용할 수 있습니다.
+  - interface 이름<타입 매개변수들> {}
+  - type 이름<타입 매개변수들> = {}
+  - class 이름<타입 매개변수들> {}
+  - function 이름<타입 매개변수들>() {}
+  - const 이름 = <타입 매개변수들>() => {}
+- 타입 매개변수는 기본값을 사용할 수 있습니다.
+  - ```ts
+    // 타입 매개변수 기본값 설정
+    type Box<T = string> = {
+      value: T;
+    };
+    
+    // 기본값 사용
+    const stringBox: Box = { value: "Hello" }; // T는 기본적으로 string으로 설정됨
+    
+    // 기본값 덮어쓰기
+    const numberBox: Box<number> = { value: 123 }; // T를 number로 명시적으로 설정
+    ```
+- 타입스크립트는 제네릭에 직접 타입을 넣지 않아도 추론을 통해 타입을 알아낼 수 있습니다.
+  - ```ts
+    function values<const T>(initial: T[]) {
+      return {
+          hasValue(value: T) { return initial.includes(value) }
+      };
+    }
+      
+    const saveValues = values(["a", "b", "c"]);
+      
+    saveValues.hasValue("x");
+    // Argument of type '"x"' is not assignable to parameter of type '"a" | "b" | "c"'.
+    ```
+    - 타입 매개변수 앞에 const 수식어를 추가하면 타입 매개변수 T를 추론할 때 as const를 붙인 값으로 추론합니다.
+
+### 2.14.1 제네릭에 제약 걸기
+- 타입 매개변수에 extends 문법으로 제약을 사용할 수 있습니다.
+  - ```ts
+    interface Example<A extends number, B = string> {
+        a: A,
+        b: B,
+    }
+    
+    type Usecase1 = Example<string, boolean>;
+    // Type 'string' does not satisfy the constraint 'number'.
+    
+    type Usecase2 = Example<1, boolean>;
+    type Usecase3 = Example<number>;
+    ```
+    - 특정 타입 매개변수에 제약이 걸리면 제약에 어긋나는 타입은 입력할 수 없지만 제약보다 더 구체적인 타입은 입력할 수 있습니다.
+- 하나의 타입 매개변수가 다른 타입 매개변수의 제약이 될 수 있습니다.
+  - ```ts
+    interface Example<A, B extends A> {
+        a: A,
+        b: B,
+    }
+    
+    type Usecase1 = Example<string, number>;
+    // Type 'number' does not satisfy the constraint 'string'.
+    type Usecase2 = Example<string, 'hello'>;
+    type Usecase3 = Example<number, 123>;
+    ```
+    
