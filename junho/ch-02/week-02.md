@@ -390,4 +390,34 @@
     type Usecase2 = Example<string, 'hello'>;
     type Usecase3 = Example<number, 123>;
     ```
+- 제네릭을 사용할 때 타입 매개변수와 제약을 동일하게 생각하는 실수를 흔하게 합니다.
+  - ```ts
+    interface V0 {
+        value: any;
+    }
     
+    const returnV0 = <T extends V0>(): T => {
+        return { value: 'test' };
+    }
+    
+    // Type '{ value: string; }' is not assignable to type 'T'...
+    ```
+    - T의 값이 { value: any, another: string }이 될 수 있습니다.
+    - 
+  - ```ts
+    function onlyBoolean<T extends boolean>(arg: T = false): T {
+        return arg;
+    }
+    
+    // Type 'boolean' is not assignable to type 'T'...
+    ```
+    - T는 true 또는 false가 될 수 있습니다.
+    - ```ts
+      onlyBoolean<true>(true);  // ✅ OK
+      onlyBoolean<false>(false); // ✅ OK
+      onlyBoolean<boolean>(true);  // ✅ OK
+      onlyBoolean<boolean>(false); // ✅ OK
+
+      onlyBoolean<true>(); // ❌ 에러 발생!
+      ```
+      - 모순이 발생할 수 있습니다.
