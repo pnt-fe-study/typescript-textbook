@@ -490,7 +490,7 @@
     type BooleanArray = ChooseArray<boolean>;
     // type BooleanArray = boolean[]
     ```
-- 인데스 접근 타입으로 컨디셔널 타입을 사용할 수 있습니다.
+- 인덱스 접근 타입으로 컨디셔널 타입을 사용할 수 있습니다.
   - ```ts
     type A1 = string;
     type B1 = A1 extends string ? number : boolean;
@@ -499,3 +499,59 @@
         'f': boolean;
     }[A1 extends string ? 't' : 'f'];
     ```
+### 2.15.1 컨디셔널 타입 분배법칙
+- 검사하는 타입이 제네릭이면서유니언이면 분배법칙이 실행됩니다.
+  - ```ts
+    type Start = string | number;
+    type Result<K> = K extends string ? K[] : never;
+    let n: Result<Start> = ['ht'];
+    // let n = string[]
+    ```
+- boolean에 분배법칙이 적용될 때는 조심해야 합니다.
+  - ```ts
+    type Start = string | number | boolean;
+    type Result<K> = K extends string | boolean ? K[] : never;
+    let n: Result<Start> = ['ht'];
+    // let n: string[] | false[] | true[]
+    ```
+    - string[] | boolean[]이 될 것이라는 예상과 달리 string[] | false[] | true[] 가 됩니다.
+    - boolean을 true | false 로 인식하기 때문입니다.
+- 분배법칙이 일어나는 것을 막고 싶을 수도 있습니다.
+  - ```ts
+    // 분배법칙으로 발생하는 문제
+    type IsString<T> = T extends string ? true : false;
+    type Result = IsString<'hi' | 3>;
+    // type Result = boolean
+    ```
+    - Result 타입이 false를 예상했지만, boolean으로 나옵니다.
+    - 분배법칙으로 true | false가 나와 boolean이 됩니다.
+  - ```ts
+    type IsString<T> = [T] extends [string] ? true : false;
+    type Result = IsString<'hi' | 3>;
+    // type Result = false
+    ```
+    - 배열로 제네릭을 감싸면 분배법칙이 일어나지 않습니다.
+    - 'hi' | 3 과 string을 비교하여 false가 됩니다.
+    - 추가로 string에 괄호를 제거하면 어떻게 될까요?
+      - ```ts
+        type IsString<T> = [T] extends string ? true : false;
+        type Result = IsString<'hi' | 3>;
+        // type Result = false
+        ```
+        - ([ 'hi' ] extends string ? true : false) | ([ 3 ] extends string ? true : false)
+        - false | false => false
+- 컨디셔널 타입에서 제네릭과 never가 만나면 never가 됩니다.
+  - ```ts
+    ttype R<T> = T extends string ? true : false;
+    type RR = R<never>;
+    // type RR = never
+    ```
+- 타입스크립트는 제네릭이 들어있는 컨디셔널 타입을 판단할 때 값의 판단을 뒤로 미룹니다.
+  - ```ts
+    function test<T>(a: T) {
+        type R<T> = T extends string ? T : T;
+        const b: R<T> = a;
+    }
+    // Type 'T' is not assignable to type 'R<T>. 
+    ```
+    - 변수 b에 매개변수 a를 대입할 때까지 타입스크립트는 R<T>가 T라는 것을 알지 못합니다.
