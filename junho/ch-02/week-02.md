@@ -555,3 +555,114 @@
     // Type 'T' is not assignable to type 'R<T>. 
     ```
     - 변수 b에 매개변수 a를 대입할 때까지 타입스크립트는 R<T>가 T라는 것을 알지 못합니다.
+
+## 2.16 함수와 메서드를 타이핑하자
+- 기본값이 제공된 매개변수는 자동으로 옵셔널이 됩니다.
+- 나머지 매개변수 문법을 사용하는 매개변수는 항상 배열이나 튜플 타입이어야 합니다.
+- 함수 내부에서 this를 사용하는 경우에는 명시적으로 표기해야 합니다.
+  - ```ts
+    function example1() {
+        console.log(this);
+    }
+    // 'this' implicitly has type 'any' because it does not have a type annotation.
+    
+    function example2(this: Window) {
+        console.log(this);
+    }
+    // this: Window
+    
+    function example3(this: Document, a: string, b: 'this') {}
+    example3('hello', 'this');
+    // The 'this' context of type 'void' is not assignable to method's 'this' of type 'Document'.
+    
+    example3.call(document, 'hello', 'this');
+    ```
+    - 매개변수 첫 번째 자리에 this 타입을 표기해야 합니다.
+    - this 타입을 표기했다고 해서 this를 쓸 수 있는 것은 아닙니다.
+    - this가 Document 타입일 수 없음을 알고 있으며 call 메서드 등을 활용해 this의 값을 명시적으로 document로 지정해주어야 합니다.
+- 메서드의 this는 일반적으로 객체 자신을 추론하지만 this가 바뀔 수 있을 때는 명시적으로 타이핑해주어야 합니다.
+- 타입스크립트에서는 기본적으로 함수를 생성자로 사용할 수 없습니다.
+
+## 2.17 같은 이름의 함수를 여러 번 선언할 수 있다
+- 함수의 타입을 미리 여러 개 타이핑해두는 기법을 오버로딩이라고 합니다.
+- 오버로딩을 선언하는 순서가 타입 추론에 영향을 끼칩니다.
+  - ```ts
+    function example(param: string): string;
+    function example(param: string | null): number;
+    function example(param: string | null): string | number {
+        if (param) {
+            return 'string';
+        } else {
+            return 123;
+        }
+    }
+    
+    const result = example('what');
+    // const result: string
+    ```
+    - 'what'은 string 이므로 첫 번째 오버로딩과 두 번째 오버로딩에 해당 됩니다.
+    - 오버로딩이 동시에 해당할 경우 먼저 선언된 오버로딩을 따릅니다.
+  - ```ts
+    function example(param: string | null): number;
+    function example(param: string): string;
+    function example(param: string | null): string | number {
+        if (param) {
+            return 'string';
+        } else {
+            return 123;
+        }
+    }
+    
+    const result = example('what');
+    // const result: number
+    ```
+    - 오버로딩의 순서를 바꾸면 result가 number가 됩니다.
+    - 다만 실제 result의 반환값은 'string'이므로 에러가 발생합니다.
+    - `오버로딩의 순서는 좁은 타입부터 넓은 타입순`으로 오게 해야 문제가 없습니다.
+- 인터페이스로 오버로딩을 표현할 수 있습니다.
+  - ```ts
+    interface Add {
+        (x: number, y: number): number;
+        (x: string, y: string): string;
+    }
+    
+    const add: Add = (x: any, y: any) => x + y;
+    ```
+- 타입별칭으로 오버로딩을 표현할 수 있습니다.
+  - ```ts
+    type Add1 = (x: number, y: number) => number;
+    type Add2 = (x: string, y: string) => string;
+    type Add = Add1 & Add2;
+    const add: Add = (x: any, y: any) => x + y;
+    ```
+- 지나치게 오버로딩을 활요하면 안 됩니다.
+  - ```ts
+    function a(param: string): void // 오버로드 시그니처(선언부)
+    function a(param: number): void 
+    function a(param: string | number) {} // 구현 시그니처(구현부)
+    
+    function errorA(param: string | number) {
+        a(param);
+    }
+    // No overload matches this call...
+    ```
+    - 타입 검사는 오직 오버로드 시그니처만 기준으로 수행됩니다.
+    - 선언부에 string | number 타입이 없어 에러가 발생합니다.
+      
+## 2.18 콜백 함수의 매개변수는 생략 가능하다
+- ```ts
+  function example(callback: (error: Error, result: string) => void) {}
+  example((e, r) => {});
+  example(() => {});
+  example(() => true);
+  ```
+  - 인수로 제공하는 콜백 함수의 매개변수에는 타입을 표기하지 않아도 됩니다.
+  - 이러한 현상을 문맥적 추론이라고 부릅니다.
+
+## 2.19 공변성과 반공변성을 알아야 함수끼리 대입할 수 있다
+- 공변성: A -> B 일 때 T<A> -> T<B>인 경우
+- 반공변성: A -> B 일 때 T<B> -> T<A>인 경우
+- 이변성: A -> B 일 때 T<A> -> T<B>도 되고 T<B> -> T<A>도 되는 경우
+- 무공변성: A -> B 일 때 T<A> -> T<B>도 안 되고 T<B> -> T<A>도 안 되는 경우
+- 함수의 반환값은 공변성을 가집니다.(좁은 타입을 넓은 타입에 대입할 수 있다)
+- 함수의 매개변수는 반공변성을 가집니다.(넓은 타입을 좁은 타입에 대입할 수 있다)
