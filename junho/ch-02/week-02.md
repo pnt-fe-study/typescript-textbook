@@ -666,3 +666,121 @@
 - 무공변성: A -> B 일 때 T<A> -> T<B>도 안 되고 T<B> -> T<A>도 안 되는 경우
 - 함수의 반환값은 공변성을 가집니다.(좁은 타입을 넓은 타입에 대입할 수 있다)
 - 함수의 매개변수는 반공변성을 가집니다.(넓은 타입을 좁은 타입에 대입할 수 있다)
+
+## 2.20 클래스는 값이면서 타입이다
+- implements 예약어를 사용하면 더 엄격하게 클래스 멤버를 검사할 수 있습니다.
+  - ```ts
+    interface Human {
+        name: string;
+        age: number;
+        married: boolean;
+        sayName(): void;
+    }
+    
+    class Person implements Human {
+        name;
+        age;
+        married;
+    
+        constructor(name: string, age: number, married: boolean) {
+            this.name = name;
+            this.age = age;
+            this.married = married;
+        }
+    }
+    // Class 'Person' incorrectly implements interface 'Human'...
+    ```
+    - sayName 메서드를 구현하지 않아 에러가 발생합니다.
+- 클래스의 자체 타입이 필요하다면 `typeof 클래스이름`으로 사용해야 합니다.
+- 클래스 멤버에 옵셔널(?), readonly, public, protected, private 수식어가 가능합니다.
+
+| 접근 제한자  | 자기 클래스 | 자식 클래스 | 인스턴스 |
+|-------------|------------|------------|----------|
+| `public`    | ✅ 가능   | ✅ 가능   | ✅ 가능 |
+| `protected` | ✅ 가능   | ✅ 가능   | ❌ 불가능 |
+| `private`   | ✅ 가능   | ❌ 불가능 | ❌ 불가능 |
+
+- private과 #의 차이점은 private으로 선언한 속성은 자식 클래스에서 같은 이름으로 선언할 수 없다는 점입니다.
+  - ```ts
+    class PrivateMember {
+        private priv: string = 'priv';
+    }
+    
+    class ChildPrivateMember extends PrivateMember {
+        private priv: string = 'priv';
+    }
+    // Class 'ChildPrivateMember' incorrectly extends base class 'PrivateMember'...
+    
+    class PrivateField {
+        #priv: string = 'priv';
+    
+        sayPriv() {
+            console.log(this.#priv);
+        }
+    }
+    
+    class ChildPrivateField extends PrivateField {
+        #priv: string = 'priv';
+    }
+    
+    class A extends PrivateMember {
+        #priv: string = 'ase';
+    }
+    
+    class B extends PrivateField {
+        private priv: string = 'priv';
+    }
+    ```
+- implements에 속하는 속성은 전부 public이어야 합니다.
+- 명시적으로 오버라이드할 때는 앞에 override 수식어를 사용해야 합니다.
+  - ```ts
+    class Human {
+        eat() {
+            console.log("냠냠")
+        }
+        sleep() {
+            console.log("쿨쿨")
+        }
+    }
+    
+    class Employee extends Human {
+        worK() {
+            console.log("끙차")
+        }
+        override sleep() {
+            console.log("에고고")
+        }
+    }
+    ```
+    - override 수식어를 사용하면 부모 클래스의 메서드를 바꿀 때 확인할 수 있다는 장점이 있습니다.
+    - 부모 클래스의 메서드를 실수로 변경했거나 오타를 쉽게 확인할 수 있습니다.
+- 클래스의 생성자 함수에도 오버로딩을 적용할 수 있습니다.
+  - ```ts
+    class Person {
+        name?: string;
+        age?: number;
+        married?: boolean;
+        constructor();
+        constructor(name: string, married: boolean);
+        constructor(name: string, age: number, marreid: boolean);
+        constructor(name?: string, age?: number | boolean, married?: boolean) {
+            if (name) {
+                this.name = name;
+            }
+    
+            if (typeof age === 'boolean') {
+                this.married = age;
+            } else {
+                this.age = age;
+            }
+    
+            if (married) {
+                this.married = married;
+            }
+        }
+    }
+    
+    const person1 = new Person();
+    const person2 = new Person('nero', true);
+    const person3 = new Person('zero', 29, false);
+    ```
