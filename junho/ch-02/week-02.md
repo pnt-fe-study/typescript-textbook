@@ -784,3 +784,89 @@
     const person2 = new Person('nero', true);
     const person3 = new Person('zero', 29, false);
     ```
+    - 일반 함수와 비슷하게 타입 선언을 여러 번 하면 됩니다.
+    - 함수의 구현부는 한 번만 나와야 하고, 구현부에서 여러 번 타입 선언한 것들에 대해 모두 대응할 수 있어야 합니다.
+- 클래스나 인터페이스의 메서드에서는 this를 타입으로 사용할 수 있습니다.
+  - ```ts
+    class Person {
+        age: number;
+        married: boolean;
+        constructor(age: number, married: boolean) {
+            this.age = age;
+            this.married = married;
+        }
+    
+        sayAge() {
+            console.log(this.age);
+        }
+        // this: this
+    
+        sayMarried(this: Person) {
+            console.log(this.married);
+        }
+        // this: Person
+    
+        sayCallback(callback: (this: this) => void) {
+            callback.call(this);
+        }
+        // this: this
+    }
+    ```
+    - 기본적으로 this는 클래스 자신이지만, sayMarried 메서드처럼 명시적으로 this를 타이핑할 수 있습니다.
+    - sayCallback에서 콜백 함수의 this는 콜백 함수의 this 타입이 Person 인스턴스가 됩니다.
+      - ```ts
+        class A {
+            callbackWithThis(cb: (this: this) => void) {
+                cb.call(this);
+            }
+        
+            callbackWithoutThis(cb: () => void) {
+                cb();
+            }
+        }
+        
+        new A().callbackWithThis(function() {
+            this;
+        })
+        // this: A
+        
+        new A().callbackWithoutThis(function() {
+            this;
+        })
+        // 'this' implicitly has type 'any' because it does not have a type annotation.
+        ```
+        - 콜백 함수에서 this를 사용하고 싶다면 this를 타이핑해야 하고, 그 this가 클래스 자신이라면 this: this로 타이핑하면 됩니다.
+
+## 2.20.1 추상 클래스
+- 추상 클래스는 implements보다 조금 더 구체적으로 클래스의 모양을 정의하는 방법입니다.
+  - ```ts
+    abstract class AbstractPerson {
+        name: string;
+        age: number;
+        married: boolean = false;
+        abstract value: number;
+    
+        constructor(name: string, age: number, married: boolean) {
+            this.name = name;
+            this.age = age;
+            this.married = married;
+        }
+    
+        sayName() {
+            console.log(this.name);
+        }
+    
+        abstract sayAge(): void;
+        abstract sayMarried(): void;
+    }
+    
+    class RealPerson extends AbstractPerson {
+        sayAge() {
+            console.log(this.age);
+        }
+    }
+    // Non-abstract class 'RealPerson' is missing implementations for the following members of 'AbstractPerson': 'value', 'sayMarried'.
+    ```
+    - 속성과 메서드가 abstract인 경우 실제 값은 없고 타입 선언만 되어 있습니다.
+    - RealPerson 클래스는 AbstractPerson 클래스를 상속하며, 이때 반드시 abstract 속성이나 메서드를 구현해야 합니다.
+- implements와 다르게 abstract 클래스는 실제 자바스크립트 코드로 변환됩니다.
