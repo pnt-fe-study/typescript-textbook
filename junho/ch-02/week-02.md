@@ -26,6 +26,8 @@
     - 에러를 분석할 때 에러 메시지가 여러 개 있다면 위에서 아래로 읽으면서 구체적인 에러의 위치를 찾아나가면 됩니다.
   - 객체 리터럴을 대입하면 `잉여 속성 검사`가 실행됩니다.
   - `잉여 속성 검사`는 타입 선언에서 선언하지 않은 속성을 사용할 때 에러를 표시하는 것을 의미합니다.
+  - 변수를 사용하면 `할당 가능성 검사`가 적용됩니다.
+    - 타입스크립트는 변수에 한 번 대입된 객체가 어디에서든 사용될 수 있다고 가정하기 때문에 더 유연하게 타입 검사를 수행합니다.
 
 ### 2.10.1 인덱스 접근 타입
 - ```ts
@@ -870,3 +872,76 @@
     - 속성과 메서드가 abstract인 경우 실제 값은 없고 타입 선언만 되어 있습니다.
     - RealPerson 클래스는 AbstractPerson 클래스를 상속하며, 이때 반드시 abstract 속성이나 메서드를 구현해야 합니다.
 - implements와 다르게 abstract 클래스는 실제 자바스크립트 코드로 변환됩니다.
+
+## 2.21 enum은 자바스크립트에서도 사용할 수 있다
+- enum은 자바스크립트에는 없는 타입이지만, 자바스크립트의 값으로 사용할 수 있는 특이한 타입입니다.
+- enum은 여러 상수를 나열하는 목적으로 사용합니다.
+  - ```ts
+    enum Level {
+    NOVICE,
+    INTERMEDIATE,
+    ADVANCED,
+    MASTER
+    }  
+    ```
+- 문자열도 할당 가능합니다.
+- enum 타입의 속성은 값으로도 활용할 수 있습니다.
+- enum은 타입 안전성을 완전히 보장하지 않습니다.
+  - ```ts
+    enum Role {
+    USER,
+    GUEST,
+    ADMIN
+    }
+
+    console.log(Role[3]);
+    // undefined
+    ```
+- const enum을 사용하면 자바스크립트를 생성하지 않습니다.
+  - ```ts
+    const enum Money {
+        WON,
+        DOLLAR
+    }
+    
+    Money.WON;
+    // (enum member) Money.WON = 0
+    
+    Money[Money.WON];
+    // A const enum member can only be accessed using a string literal.
+    ```
+
+## 2.22 infer로 타입스크립트의 추론을 직접 활용하자
+- infer 예약어는 타입스크립트의 타입 추론 기능을 극한까지 활용하는 기능입니다.
+- 컨디셔널 타입과 함꼐 사용합니다.
+  - ```ts
+    // 배열이 있을 때 배열의 요소 타입을 얻어내고 싶은 상황
+    type El<T> = T extends (infer E)[] ? E : never;
+
+    type Str = El<string[]>
+    // type Str = string
+    
+    type NumOrBool = El<(number | boolean)[]>
+    // type NumOrBool = number | boolean
+    ```
+    - 컨디셔널 타입에서 타입 변수는 참 부분에서만 사용 가능합니다.(거짓에서 사용 시 에러 발생)
+- 서로 다른 타입 변수를 여러 개 동시에 사용할 수 있습니다.
+  - ```ts
+    type MyPAndR<T> = T extends (...args: infer P) => infer R ? [P, R] : never;
+    type PR = MyPAndR<(a: string, b: number) => string>
+    // type PR = [[a: string, b: number], string]
+    ```
+- 같은 타입 변수를 여러 곳에 사용할 수 있습니다.
+  - ```ts
+    type Union<T> = T extends {a: infer U, b: infer U} ? U : never;
+    type Result = Union<{a: 1 | 2, b: 2 | 3}>;
+    // type Result = 1 | 2 | 3
+    
+    type Intersection<T> = T extends {
+        a: (pa: infer U) => void,
+        b: (pb: infer U) => void,
+    } ? U : never;
+    type Result2 = Intersection<{ a(pa: 1 | 2): void, b(pb: 2 | 3): void}>
+    // type Result2 = 2
+    ```
+    - 기본적으로 같은 이름의 타입 변수는 유니온이 되지만, 매개변수는 반공변성을 가지고 있기 때문에 인터섹션이 됩니다.
