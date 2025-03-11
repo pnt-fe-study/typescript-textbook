@@ -144,3 +144,139 @@ a((e, r) => {});
 > 기본적으로 타입스크립트는 공변성을 갖고 있지만 함수의 매개변수는 반공변성을 갖고 있다. (TS Config 메뉴에서 strictFunctionTypes 옵션이 체크되어야 한다.)
 
 <br />
+
+### 실제 코드로 테스트해보자!
+
+```ts
+function a(x: string): number {
+  return 0;
+}
+
+type B = (x: string) => number | string;
+let b: B = a;
+```
+
+- a 함수를 b 타입에 대입할 수 있다. (현재 두 타입의 차이는 반환값뿐)
+- 함수의 반환값 타입을 보면 b가 a보다 넓은 타입이다.
+- a는 number를 반환하고, b는 number | string을 반환한다.(a 반환값을 b 반환값에 대입 가능)
+
+> 반환값에 대해서는 항상 공변성을 가진다.
+
+### 객체의 메서드를 타이핑할 때도 타이핑 방법에 따라 변성이 정해진다!
+
+```ts
+interface SayMethod {
+  say(a: string | number): string;
+}
+interface SayFunction {
+  say(a: string | number): string;
+}
+interface SayCall {
+  say: {
+    (a: string | number): string;
+  };
+}
+
+const sayFunc = (a: string) => "hello";
+
+const MyAddingMethod: SayMethod = {
+  say: sayFunc, // 이변성
+};
+const MyAddingFunction: SayFunction = {
+  say: sayFunc, // 반공변성
+};
+const MyAddingCall: SayCall = {
+  say: sayFunc, // 공변성
+};
+```
+
+> "함수(매개변수): 반환값"으로 선언한 것은 매개변수가 이변성을 가지기 때문이고, "함수: (매개변수) => 반환값"으로 선언한 것은 반공변성을 가진다.
+
+<br />
+<br />
+
+## 2.20 클래스는 값이면서 타입이다
+
+타입스크립트는 name, age, married 같은 멤버를 클래스 내부에 한 번에 적어야 한다.
+멤버의 타입은 생략할 수 있고, 타입스크립트가 생성자 함수를 통해 알아서 추론한다.
+
+```ts
+class Person {
+  name: string;
+  age;
+  married;
+  constructor(name: string, age: number, married: boolean) {
+    this.name = name;
+    this.age = age;
+    this.married = married;
+  }
+}
+```
+
+### 클래스 표현식으로도 선언할 수 있다!
+
+표현식으로 선언하되 멤버는 항상 constructor 내부와 짝이 맞아야 한다.
+
+```ts
+const person = class {
+  name;
+  age;
+  married;
+  constructor(name: string, age: number, married: boolean) {
+    this.name = name;
+    this.age = age;
+    this.married = married;
+  }
+};
+```
+
+### 생성자 내부에 선언할 때 주의할 것
+
+생성자 내부에 할당 없이 멤버로만 선언하면 생성자 안에서 할당되지 않았다는 에러가 발생한다.
+멤버를 선언하지 않고 생성자에서만 만들면 해당 속성이 클래스 안에 없다고 에러가 발생한다.
+
+조금 더 엄격하게, 클래스 멤버가 제대로 들었는지 검사하려면 `인터페이스 + implements 예약어`s를 사용한다.
+
+```ts
+interface Human {
+  name: string;
+  age: number;
+  married: boolean;
+  sayName(): void;
+}
+
+class Person implements Human {
+  name;
+  age;
+  married;
+  constructor(name: string, age: number, married: boolean) {
+    this.name = name;
+    this.age = age;
+    this.married = married;
+  }
+} // Class 'Person' incorrectly implements interface 'Human'. Property 'sayName' is missing in type 'Person' but required in type 'Human'.
+```
+
+> 타입스크립트는 생성자 함수 방식으로 객체를 만드는 것을 지원하지 않는다! 따라서, 클래스가 new를 붙여 호출할 수 있는 유일한 객체이다.
+
+### 클래스 자체의 타입이 필요하다면 "typeof 클래스 이름"으로 타이핑한다.
+
+```ts
+const P: typeof Person = Person;
+const person2 = new P("nero", 32, true);
+```
+
+### 클래스 멤버 중 수식어 속성을 알아보자!
+
+클래스 멤버로는 옵셔널이나 readonly뿐만 아니라 public, protected, private 수식어가 추가되었다.
+
+- public 속성: 선언한 자신의 클래스, 자손 클래스, new 호출로 만들어낸 인스턴스에서 속성을 사용할 수 있다. (자손 클래스란 extends로 상속받은 클래스를 의미한다.)
+- protected 속성: 자신의 클래스와 자손 클래스에서는 속성을 사용할 수 있으나 인스턴스에서는 사용할 수 없다.
+- private 속성: 자신의 클래스에서만 속성을 사용할 수 있다. value 속성은 Child 클래스나 child.value에서 에러가 발생한다.
+
+| 수식어    | 자신 class | 자손 class | 인스턴스 |
+| --------- | ---------- | ---------- | -------- |
+| private   | O          | X          | X        |
+| protected | O          | O          | X        |
+| public    | O          | O          | O        |
+
