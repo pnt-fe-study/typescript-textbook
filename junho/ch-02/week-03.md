@@ -358,3 +358,257 @@
     // type Result2 = 2
     ```
     - 기본적으로 같은 이름의 타입 변수는 유니온이 되지만, 매개변수는 반공변성을 가지고 있기 때문에 인터섹션이 됩니다.
+
+## 2.23 타입을 좁혀 정확한 타입을 얻어내자
+- instanceof 연산자를 이용해서 클래스를 구분할 수 있습니다.
+  - ```ts
+    class A {}
+    class B {}
+    function classAorB(param: A | B) {
+        if (param instanceof A) {
+            param; // (parameter) param: A
+        } else {
+            param; // (parameter) param: B
+        }
+    }
+    ```
+- 타입 좁히기는 자바스크립트에서 실행하기 때문에 자바스크립트 문법을 사용해서 진행해야 합니다.
+- 브랜드 속성을 사용하면 객체의 구분이 쉬워집니다.
+  - ```ts
+    interface Money {
+        __type: 'money';
+        amount: number;
+        unit: string;
+    }
+    
+    interface Liter {
+        __type: 'liter';
+        amount: number;
+        unit: string;
+    }
+    
+    function moneyOrLiter(param: Money | Liter) {
+        if (param.__type === 'money') {
+            param; // (parameter) param: Money
+        } else {
+            param; // (parameter) param: Liter
+        }
+    }
+    ```
+    - 타입 좁히기 함수를 만들 수도 있습니다.
+      - ```ts
+        interface Money {
+            __type: 'money';
+            amount: number;
+            unit: string;
+        }
+        
+        interface Liter {
+            __type: 'liter';
+            amount: number;
+            unit: string;
+        }
+        
+        function isMoney(param: Money | Liter): param is Money {
+            if (param.__type === 'money') {
+                return true;
+            } else {
+                return false;
+            }
+        }
+        
+        function moneyOrLiter(param: Money | Liter) {
+            if (isMoney(param)) {
+                param; // (parameter) param: Money
+            } else {
+                param; // (parameter) param: Liter
+            }
+        }
+        ```
+
+## 2.24 자기 자신을 타입으로 사용하는 재귀 타입이 있다
+- 자기 자신을 타입으로 다시 사용하는 타입을 재귀 타입이라고 부릅니다.
+- 컨디셔널 타입에도 사용할 수 있습니다.
+  - ```ts
+    type ElementType<T> = T extends any[] ? ElementType<T[number]> : T;
+    ```
+- 타입 인수로 사용하는 것은 불가능합니다.
+  - ```ts
+    type T = number | string | Record<string, T>;
+    // Type alias 'T' circularly references itself.
+    ```
+    - 타입 인수를 사용하지 않는 방식으로 변경해야 합니다.
+      - ```ts
+        type T = number | string | { [key: string]: T };
+        ```
+- 재귀 타입을 통해 배열을 거꾸로 뒤집는 것도 가능합니다.
+  - ```ts
+    type Reverse<T> = T extends [...infer L, infer R] ? [R, ...Reverse<L>] : [];
+    ```
+
+## 2.25 정교한 문자열 조작을 위해 템플릿 리터럴 타입을 사용하자
+- 템플릿 리터럴 타입은 백틱과 보간을 사용하는 특수한 문자열 타입입니다.
+  - ```ts
+    type Literal = "literal";
+    type Tempalte = `template ${Literal}`;
+    // type Tempalte = "template literal"
+    
+    const str: Tempalte = 'template literal';
+    ```
+- 문자열 타입 안에 다른 타입을 변수로 넣을 수 있습니다.
+  - ```ts
+    type Tempalte = `template ${number}`;
+    let t1: Tempalte = 'template 1';
+    t1 = 'template 123';
+    t1 = 'template a';
+    // Type '"template a"' is not assignable to type '`template ${number}`'.
+    ```
+- 템플릿 리터럴 타입을 사용하면 `문자열 변수`를 엄격하게 관리할 수 있습니다.
+- 문자열의 조합을 표현할 때 편리합니다.
+  - ```ts
+    type City = 'seoul' | 'suwon' | 'busan';
+    type Vehicle = 'car' | 'bike' | 'walk';
+    type ID = `${City}:${Vehicle}`;
+    const id: ID = 'seoul:walk';
+    ```
+- 템플릿 리터럴 타입은 재귀 호출이 가능합니다.
+  - ```ts
+    type RemoveX<Str> = Str extends `x${infer Rest}` ? RemoveX<Rest> : Str extends `${infer Rest}x` ? RemoveX<Rest> : Str;
+    type Removed = RemoveX<'xxtestxx'>;
+    // type Removed = "test"
+    ```
+
+## 2.26 추가적인 타입 검사에는 satisfies 연산자를 사용하자
+- satisfies 연산자는 타입 추론을 그대로 활용하면서 추가로 타입 검사를 하고 싶을 때 사용합니다.
+  ```ts
+  const universe: {
+      [key in 'sun' | 'sirius' | 'earth']: { type: string, parent: string} | string
+  } = {
+      sun: 'star',
+      sriius: 'star', // sirius 오타
+      earth: { type: 'planet', parent: 'sun'},
+  };
+  // Object literal may only specify known properties...
+
+  universe.earth.type;
+  // Property 'type' does not exist on type 'string | { type: string; parent: string; }'...
+
+  /*
+  const universe: {
+      sun: string | {
+          type: string;
+          parent: string;
+      };
+      sirius: string | {
+          type: string;
+          parent: string;
+      };
+      earth: string | {
+          type: string;
+          parent: string;
+      };
+  }
+  */
+  ```
+  - 인덱스 시그니처를 사용해 siriius의 오타를 찾을 수 있습니다.
+  - 속성을 사용할 때 earth의 타입이 객체라는 사실을 제대로 나타내지 못합니다.
+    - ```ts
+      const universe = {
+          sun: 'star',
+          sriius: 'star', // sirius 오타
+          earth: { type: 'planet', parent: 'sun'},
+      };
+      
+      /* 
+      const universe: {
+          sun: string;
+          sriius: string;
+          earth: {
+              type: string;
+              parent: string;
+          };
+      }
+       */
+      ```
+      - 변수를 선언만 했을 땐 타입을 정확히 추론합니다.
+      - 이 이점을 누리면서 sriius의 오타를 찾고 싶을 때 satisfies 연산자를 사용합니다.
+        - ```ts
+          const universe = {
+              sun: 'star',
+              sriius: 'star', // sirius 오타
+              earth: { type: 'planet', parent: 'sun'},
+          } satisfies {
+              [key in 'sun' | 'sirius' | 'earth']: { type: string, parent: string } | string
+          };
+          // Object literal may only specify known properties...
+          
+          /* 
+          const universe: {
+              sun: string;
+              sriius: string;
+              earth: {
+                  type: string;
+                  parent: string;
+              };
+          }
+           */
+          
+          universe.earth.type
+          ```
+          - universe의 타입을 추론하면서 sriius 오타를 검사해주고 있습니다.
+          - earch의 속성을 에러없이 사용할 수 있습니다.
+
+## 2.27 타입스크립트는 건망증이 심하다
+- 타입을 강제할 경우에 흔히하는 실수가 있습니다.
+  - ```ts
+     try {} catch (error) {
+        if (error) {
+            error.message;
+        }
+    }
+    // Property 'message' does not exist on type '{}'.
+    ```
+    - error는 unknown 타입입니다.
+    - unknown은 if문을 통과하면 {}타입이 됩니다.
+    - {}타입은 속성을 사용할 수 없으므로 구체적으로 타입을 주장하겠습니다.
+      - ```ts
+        try {} catch (error) {
+            if (error as Error) {
+                error.message;
+            }
+        }
+        // 'error' is of type 'unknown'.
+        ```
+        - error를 Error 타입으로 강제했지만, error가 unknown으로 나옵니다.
+        - as로 강제 주장은 if문이 참인지 거짓인지를 판단할 때만 주장한 타입이 사용되고, 판단한 후에는 원래 타입으로 돌아갑니다.
+        - 주장한 타입을 계속 기억할 수 있게 만들어야 합니다.
+          - ```ts
+            try {} catch (error) {
+                const err = error as Error;
+                if (err) {
+                    err.message;
+                }
+            }
+            // const err: Error
+            ```
+            - `타입을 주장할 때는 그 타입이 일시적이므로, 변수에 담에 오래 기억해야 합니다.`
+
+## 2.28 원시 자료형에도 브랜딩 기법을 사용할 수 있다
+- ```ts
+  type Brand<T, B> = T & { __brand: B };
+  type KM = Brand<number, 'km'>;
+  type Mile = Brand<number, 'mile'>;
+  
+  function kmToMile(km: KM) {
+      return km * 0.62 as Mile;
+  }
+  
+  const km = 3 as KM;
+  const mile = kmToMile(km);
+  // const mile: Mile
+  
+  const mile2 = 5 as Mile;
+  kmToMile(mile2);
+  // Argument of type 'Mile' is not assignable to parameter of type 'KM'...
+  ```
+  - KM, Mile은 원래 존재하는 타입이 아니기 때문에 as로 강제 변환해야 합니다.
