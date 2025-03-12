@@ -136,10 +136,10 @@ a((e, r) => {});
 어떤 함수는 다른 함수에 대입할 수 있는데 대입이 불가능한 경우도 있다.
 이를 이해하기 위해 공변성, 반공변성이라는 개념을 알아야 한다.
 
-- 공변성: A -> B일 때 T<A> -> T<B>인 경우
-- 반공변성: A -> B일 때 T<B> -> T<A>인 경우
-- 이변성: A -> B일 때 T<A> -> T<B>도 되고 T<B> -> T<A>도 되는 경우
-- 무공변성: A -> B일 때 T<A> -> T<B>도 안 되고 T<B> -> T<A>도 안 되는 경우
+- 공변성: A -> B일 때 T"A" -> T"B"인 경우
+- 반공변성: A -> B일 때 T"B" -> T"A"인 경우
+- 이변성: A -> B일 때 T"A" -> T"B"도 되고 T"B" -> T"A"도 되는 경우
+- 무공변성: A -> B일 때 T"A" -> T"B"도 안 되고 T"B" -> T"A"도 안 되는 경우
 
 > 기본적으로 타입스크립트는 공변성을 갖고 있지만 함수의 매개변수는 반공변성을 갖고 있다. (TS Config 메뉴에서 strictFunctionTypes 옵션이 체크되어야 한다.)
 
@@ -280,3 +280,155 @@ const person2 = new P("nero", 32, true);
 | protected | O          | O          | X        |
 | public    | O          | O          | O        |
 
+> public 수식어는 생략해도 되므로 사용하지 않고, private 수식어는 private field로 대체한다. <br />
+> 따라서 protected 수식어만 명시적으로 사용한다.
+
+### 인터페이스 속성은 protected, private가 불가능하다.
+
+implements한 클래스에서도 인터페이스 속성은 모두 public이어야 하고, 속성이 protected이거나 private인 경우는 에러가 발생한다.
+
+### 클래스에서 오버라이드를 할 때는?
+
+명시적으로 오버라이드할 떄는 앞에 override 수식어를 붙여야 하는데 수식어를 붙이면 부모 클래스의 메서드가 바뀔 때 확인할 수 있는 장점이 있다.
+
+```ts
+class Human {
+  sleep() {
+    console.log("잠온다");
+  }
+}
+
+class Employee extends Human {
+  override sleep() {
+    console.log("졸리다");
+  }
+}
+```
+
+- 또한 클래스의 생성자 함수에도 오버로딩을 적용할 수 있다.
+  - 일반 함수와 비슷하게 타입 선언을 여러 번 하면 된다.
+  - 다만 함수의 구현부는 한 번만 와야 한다.
+  - 그 구현부에서는 여러 번 타입 선언한 것들에 대해 모두 대응할 수 있어야 한다.
+- 클래스 속성에도 인덱스 시그니처를 사용할 수 있다.(static 속성 포함)
+  - 클래스, 인터페이스 메서드에서는 this를 타입으로 사용 가능하다.
+- 인터페이스로 클래스 생성자를 타이핑 가능하다.(메서드처럼 앞에 new 연산자를 추가)
+
+```ts
+interface Human {
+  new (name: string, age: number): {
+    name: string;
+    age: number;
+  };
+}
+```
+
+<br />
+<br />
+
+## 2.20.1 추상 클래스(abstract class)
+
+implements보다 조금 더 구체적으로 클래스 모양을 정의할 수 있는 추상 클래스가 있다.
+abstract class로 선언하고, abstract 클래스 속성과 메서드는 abstract일 수 있다.
+추상 클래스는 실제 자바스크립트 코드로 변환 가능하다.(implements와 다른 점)
+
+```ts
+abstract class AbstractPerson {
+  name: string;
+  age: number;
+}
+```
+
+> 객체 타이핑을 위해 인터페이스, 클래스 사용은 취향일 수 있고 자바스크립트 변환 시에도 코드로 남아야 하는 경우는 클래스 아니라면 인터페이스를 사용하면 된다.
+
+<br />
+<br />
+
+## 2.21 enum은 자바스크립트에서도 사용할 수 있다
+
+- enum(열거형)은 여러 상수를 나열하는 목적으로 쓰인다.
+- enum 내부에 존재하는 이름은 멤버(member)라고 부른다.
+- enum은 자바스크립트로 변환할 때 코드에 남는다.
+- enum은 멤버의 순서대로 0부터 숫자를 할당하고, 0대신 다른 숫자를 할당할 때는 = 연산자를 쓴다.
+
+```ts
+enum Level {
+  INTERMEDIATE,
+  NOVICE = 3,
+  MASTER,
+}
+```
+
+- 문자열도 할당 가능한데, 다만 한 멤버를 문자열로 할당하면 그 다음부터는 전부 직접 값을 할당해야 한다.
+- enum타입의 속성은 값으로도 활용 가능하다.
+- enum타입은 브랜딩에 활용하기 좋다.
+
+```ts
+enum Money {
+  WON,
+  DOLLAR,
+}
+
+function wonOrDollar(param: Won | Dollar) {
+    if (param.type Money.WON) {
+        param;
+    } else {
+        param;
+    }
+}
+```
+
+- enum 타입을 사용하되, 자바스크립트 코드가 생성되지 않게 할 수 있는데 const enum을 사용하면 된다.
+
+<br />
+<br />
+
+## 2.22 infer로 타입스크립트의 추론을 직접 활용하자
+
+infer예약어는 타입스크립트의 타입 추론 기능을 극한까지 활용하는 기능이다. 컨디셔널 타입과 함께 사용한다. 타입스크립트가 스스로 추론하려는 부분을 infer로 만들어도 된다.
+
+```ts
+type El<T> = T extends (infer E)[] ? E : never;
+```
+
+- 서로 다른 타입 변수를 여러 개 동시에 사용할 수 있다.
+- 혹은, 같은 타입 변수를 여러 곳에 사용할 수도 있다.
+- 반환값의 타입이 매개변수의 타입과 부분집합인 경우에만 그 둘의 교집합이 된다.
+  - 그 외의 경우는 모두 never가 된다.
+- 매개변수에 같은 타입 변수를 선언하면 인터섹션이 된다는 사실을 바탕으로 유니언을 인터섹션으로 만드는 타입을 작성할 수 있다.
+
+<br />
+<br />
+
+## 2.23 타입을 좁혀 정확한 타입을 얻어내자
+
+타입스크립트가 코드를 파악해서 타입을 추론하는 것을 제어 흐름 분석(Control Flow Analysis)라고 한다.
+
+다만 제어 흐름 분석은 완벽하지 않고, 항상 typeof를 사용할 수 있는 것이 아니기에 다양한 타입 좁히기 방법을 알아두어야 한다.
+
+1. null도 "object"인 것처럼 오류가 있을 수 있다. "value === null" 등의 자바스크립트 문법을 활용한다.
+2. boolean값은 true or false로 분기 처리한다.(꼭 유니언타입을 쓰지 않아도 된다.)
+3. 배열은 Array.isArray를 활용할 수 있다.
+4. 클래스는 instaceof 연산자로 구분하고, 함수도 instanceof Function으로 구분할 수 있다.
+5. in연산자를 활용해 속성 타입 좁히기가 가능하다.
+
+> 타입 좁히기는 자바스트립트 문법에서 사용해서 진행해야 한다. 자바스크립트에서도 실행할 수 있는 코드여야 하기 때문이다.
+
+6. 브랜드 속성을 사용하면 객체 구분이 쉬워진다.
+7. 직접 타입 좁히기 함수를 만들 수도 있다.
+
+```ts
+function isMoney(param: Money | Liter): param is Money {
+  if (param.__type === "money") {
+    return true;
+  } else {
+    return false;
+  }
+}
+```
+
+> 반환값에 타입으로 param is Money 타입과 같은 것을 타입 서술 함수로 부른다. param is Money에 is라는 특수한 연산자를 사용했는데, 이렇게 하면 isMoney의 반환값이 true일 때 매개변수의 타입도 is 뒤에 적은 타입으로 좁혀진다.
+
+**"최대한 기본적 타입 좁히기를 먼저 시도하고, 정 안 될 떄 타입 서술을 사용하는 것이 좋다"**
+
+<br />
+<br />
