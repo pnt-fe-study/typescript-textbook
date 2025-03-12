@@ -432,3 +432,158 @@ function isMoney(param: Money | Liter): param is Money {
 
 <br />
 <br />
+
+## 2.24 자기 자신을 타입으로 사용하는 재귀 타입이 있다
+
+```ts
+type Recursive = {
+  name: string;
+  children: Recursive[];
+};
+
+const recur1: Recursive = {
+  name: "test",
+  children: [],
+};
+
+const recur2: Recursive = {
+  name: "test",
+  children: [
+    {
+      name: "test",
+      children: [],
+    },
+    {
+      name: "test",
+      children: [],
+    },
+  ],
+};
+```
+
+Recursive 객체 타입을 선언했는데, Recursive 객체의 속성 타입으로 다시 Recursive를 사용하고 있는 것처럼 자기 자신을 다시 사용하는 타입을 **재귀 타입** 이라 한다.
+
+- 컨디셔널 타입에도 사용할 수 있으나 타입 인수로 사용하는 것은 불가능하다.
+- 재귀 타입을 선언할 때 에러가 발생하기보다는 재귀 타입을 사용할 때 에러가 발생한다.
+
+```ts
+type InfiniteRecur<T> = { item: InfiniteRecur<T> };
+type Unwrap<T> = T extends { item: infer U } ? Unwrap<U> : T;
+type Result = Unwrap<InfiniteRecur<any>>; //Type instantiation is excessively deep and possibly infinite.
+```
+
+> InfiniteRecur 타입이 무한하므로 Unwrap 타입은 유한한 시간 안에 InfiniteRecur를 처리할 수 없고, 타입스크립트는 이를 파악할 수 있으므로 에러를 표시한다.
+
+<br />
+<br />
+
+## 2.25 정교한 문자열 조작을 위해 템플리 리터럴 타입을 사용하자
+
+템플릿 리터럴 타입은 특수한 문자열 타입으로 백틱(`)과 보간(${})을 사용하는 자바스크립트의 템플릿 리터럴과 사용법이 비슷하다.
+
+```ts
+type Literal = "literal";
+type Template = `template ${Literal}`; // type Template = "template literal";
+```
+
+- 값 대신 타입을 만들기 위해 사용한다.
+- 문자열 타입 안에 다른 타입을 변수처럼 넣을 수 있다.
+- 템플릿 리터럴 타입을 사용하면 문자열 변수를 엄격하게 관리할 수 있다.
+- 문자열 조합을 표현할 때 편리하다.
+
+```ts
+type City = "seoul" | "ulsan";
+type ID = `${City}:${City}`;
+```
+
+- 제네릭 및 infer와 함께 사용하면 더 강력하게 사용 가능하다.
+
+<br />
+<br />
+
+## 2.26 추가적인 타입 검사에는 satisfies 연산자를 사용하자
+
+satisfies 연산자가 타입스크립트 4.9버전에 추가되었고, 타입 추론을 그대로 활용하면서 추가로 타입 검사를 하고 싶을 때 사용한다.
+
+```ts
+const universe = {
+  sun: "star",
+  sriius: "star", // 오타임
+  earth: { type: "planet", parent: "sun" },
+} satisfies {
+  [key in "sun" | "sirius" | "earth"]:
+    | { type: string; parent: string }
+    | string;
+}; // Error!
+```
+
+> 타입을 타입 추론된 것을 그대로 사용하면서, 각각의 속성들은 satisfies에 적은 타입으로 다시 한번 검사하고, 오타가 난 것들을 확인할 수 있다.
+
+<br />
+<br />
+
+## 2.27 타입스크립트는 건망증이 심하다
+
+```ts
+try {
+} catch (error) {
+  if (error as Error) {
+    error.message; // "error" is of type "unknown"
+  }
+}
+```
+
+> if문에서 Error타입을 강제 주장했지만 unknown이라 나오는 이유는 as로 강제 주장한 것이 일시적이기 때문이다. if문 내 참/거짓을 판단할 때만 주장한 타입이 사용되고 판단 후에는 원래 타입으로 돌아간다.
+
+### 어떻게 해당 문제를 해결할까?
+
+```ts
+try {
+} catch (error) {
+  const err = error as Error;
+  if (err) {
+    err.message;
+  }
+}
+```
+
+주장한 타입을 계속 기억할 수 있도록 변수로 만든다. 타입을 주장할 때는 그 타입이 일시적이므로 변수에 담아야 오래 기억한다.
+
+```ts
+try {
+} catch (error) {
+  if (error instanceof Error) {
+    err.message;
+  }
+}
+```
+
+> 가장 좋은 방법은 as를 쓰지 않고 타입 추론을 하는 방법이나 클래스의 인스턴스인 경우에만 가능하다는 단점이 있다.
+
+<br />
+<br />
+
+## 2.28 원시 자료형에도 브랜딩 기법을 사용할 수 있다
+
+원시 자료형 타입에 브랜딩 속성을 추가하는 기법을 사용하면 string, number 같은 원시 자료형 타입도 더 세밀하게 구분할 수 있다.
+
+아래의 예시처럼 숫자 타입은 있지만 KM, Mile같은 타입이 없기 때문에 브랜딩 기법을 사용해서 더 구체적으로 타입을 정할 수 있다.
+
+```ts
+type Brand<T, B> = T & { __brand: B };
+type KM = Brand<number, "km">;
+type Mile = Brand<number, "mile">;
+
+function kmToMile(km: KM) {
+  return (km * 0.62) as Mile;
+}
+
+const km = 3 as KM;
+const mile = kmToMile(km);
+const mile2 = 5 as Mile; // Error!
+kmToMile(mile2);
+```
+
+> Argument of type 'Mile' is not assignable to parameter of type 'KM' 같은 타입 불일치 문제가 발생하고 있다. 다른 T타입의 속성과 겹치지 않을 이름으로 사용하고 둘 다 number라도 구별되게 브랜드 속성을 추가하면 된다.
+
+**브랜딩 기법을 활용하여 number 타입을 KM, Mile 타입으로 세분화하고 타입을 더 정밀하게 활용할수록 안정성도 더 올라갈 수 있다.**
