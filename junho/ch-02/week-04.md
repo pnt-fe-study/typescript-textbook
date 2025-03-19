@@ -163,3 +163,59 @@
               addInitializer?(initializer: () => void): void;
             }
             ```
+- 데코레이터 자체도 함수이므로 고차함수를 활용하여 매개변수를 가질 수 있습니다.
+  - ```ts
+    function startAndEnd(start = 'start', end = 'end') {
+        return function RealDecorator<This, Args extends any[], Return>(
+            originalMethod: (this: This, ...args: Args) => Return,
+            context: ClassMethodDecoratorContext<This, (this: This, ...args: Args) => Return>
+        ) {
+            function replacementMethod(this: This, ...args: Args): Return {
+                console.log(context.name, start);
+                const result = originalMethod.call(this, ...args);
+                console.log(context.name, end);
+                return result;
+            }
+            return replacementMethod;
+        }
+    }
+    
+    class A {
+        @startAndEnd()
+        eat() {
+            console.log('eat');
+        }
+    
+        @startAndEnd()
+        work() {
+            console.log('work');
+        }
+    
+        @startAndEnd('시작', '끝')
+        sleep() {
+            console.log('sleep');
+        }
+    }
+    ```
+    - 기존 데코레이터에 start와 end를 매개변수로 받는 함수를 추가하였습니다.
+
+## 2.32 앰비언트 선언도 선언 병합이 된다
+- 타입스크립트에서 자바스크립트 라이브러리를 사용할 때 직접 타이핑하는 것을 앰비언트 선언(declare)이라고 합니다.
+  - ```ts
+    declare namespace NS {
+        const v: string;
+    };
+    declare enum Enum {
+        ADMIN = 1
+    }
+    declare function func(param: number): string;
+    declare const variable: number;
+    declare class C {
+        constructor(p1: string, p2: string);
+    }
+    
+    new C(func(variable), NS.v);
+    ```
+    - 구현부가 존재하지 않고 타입만 존재합니다.
+    - 외부 파일에 실제 값이 존재한다고 가정하고 사용합니다.
+    - declare를 사용할 때는 반드시 해당 값이 실제로 존재해야 합니다.
