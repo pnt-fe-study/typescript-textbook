@@ -113,4 +113,103 @@
     type Result = MyOmit<{ a: '1', b: 2, c: true }, 'a' | 'c'>;
     // type Result = { b: 2 }
     ```
-- 
+- 일부 속성만 옵셔널로 만드는 타입을 만들 수 있습니다.
+  - ```ts
+    type Optional<T, K extends keyof T> = Omit<T, K> & Partial<Pick<T, K>>;
+
+    type Result = Optional<{ a: 'hi', b: 123 }, 'a'>;
+    // type Result = { a?: 'hi', b: 123 }
+    ```
+
+## 3.3 Parameters, ConstructorParameters, RuternType, InstanceType
+- ```ts
+  type MyParameters<T extends (...args: any) => any> = T extends (...args: infer P) => any ? P : never;
+
+  type MyConstructorParameters<T extends abstract new (...args: any) => any> = T extends abstract new (...args: infer P) => any ? P : never;
+  
+  type MyReturnType<T extends (...args: any) => any> = T extends (...args: any) => infer R ? R : any;
+  
+  type MyInstanceType<T extends abstract new (...args: any) => any> = T extends abstract new (...args: any) => infer R ? R : any;
+  ```
+  - my를 빼면 모두 lib.es5.d.ts에 존재하는 타입입니다.
+
+## 3.4 ThisType
+- ```ts
+  const obj = {
+      data: {
+          money: 0,
+      },
+      method: {
+          addMoney(amount: number) {
+              this.money += amount;
+          },
+          useMoney(amount: number) {
+              this.money -= amount;
+          }
+      }
+  }
+  // Property 'money' does not exist on type '{ addMoney(amount: number): void; useMoney(amount: number): void; }'.
+  ```
+  - addMoney나 useMoney에서 this.money에 바로 접근하고 싶은 상황합니다.
+    - ```ts
+      type Data = { money: number };
+      type Methods = {
+          addMoney(this: Data & Methods, amount: number): void;
+          useMoney(this: Data & Methods, amount: number): void;
+      }
+      type Obj = {
+          data: Data;
+          methods: Methods;
+      };
+      
+      
+      const obj: Obj = {
+          data: {
+              money: 0,
+          },
+          methods: {
+              addMoney(amount: number) {
+                  this.money += amount;
+              },
+              useMoney(amount: number) {
+                  this.money -= amount;
+              }
+          }
+      }
+      ```
+      - 메서드에 this를 직접 타이핑하여 에러를 해결했습니다.
+      - 다만, 추가할 모든 메서드에 this를 일일이 타이핑해야 하므로 중복이 발생합니다.(this: Data & Methods)
+- ThisType 타입을 사용하면 중복을 제거할 수 있습니다.
+  - ```ts
+    type Data = { money: number };
+    type Methods = {
+        addMoney(amount: number): void;
+        useMoney(amount: number): void;
+    }
+    type Obj = {
+        data: Data;
+        methods: Methods & ThisType<Data & Methods>;
+    };
+    
+    
+    const obj: Obj = {
+        data: {
+            money: 0,
+        },
+        methods: {
+            addMoney(amount: number) {
+                this.money += amount;
+            },
+            useMoney(amount: number) {
+                this.money -= amount;
+            }
+        }
+    }
+    
+    const a = obj.methods.addMoney(3);
+    ```
+    - 메서드를 담고 있는 객체 타입인 Methods에 ThisType <Data & Methods>를 인터섹션하면 this는 Data & Methods가 됩니다.
+
+## 3.5 forEach 만들기
+- https://www.typescriptlang.org/play/?ts=5.8.2#code/JYOwLgpgTgZghgYwgAgIJSnAngHgCoB8yA3gFDIXIC2WAYgPZQCiiAFjgNLIC8yA6qAAm9AO4EAFAjgAbaQCNEAawBcycWFbAAzqo4AaZADdVeA8FUgArlTnQDcEwG0AugEoeRQ-WCCDG7egA5gD8uq6qXj4A3KQAvqSkoJCwiCjomLiEJOSUMIwsCKySMvJKMCCq4oYylhAmZiCCEAAeFta2UPYY2E5uHkbevsj+WkGhyHAgWOEDPnEJjgCMegBMegDMzgB0NAzMbOLi7txExLGuMUurG9u7+QdVZvbHpwj0IFr00hBb0vSBj2AejgrnOl2Wa02Ozo90Kh0MZheJDeHy+Pz+AMMoIupCukNuMP2cKqSPWOMcAHJFhS9BSVjSKesKQS9gUiiT+sQUZ9vr9-lUtlppMAkOIAAyubGXMBQWoGNbIRnM6Gsh5Yzk5CjAGBqMBYAAOEHoOsMPG4vApWhloECFPcZEojqMguFoolMUdsWQEGkWhQDqdFEMWzA9FowGaEEE4pxnriOIA9AnkAAFKD0Q1QPWK0PhyOCCnIYQQLTIED0MDe5raSvvYYGlAUqw2aDIAA+yDk9DRkwpW1T6cz2YpuYjUcLxdL5crLRryDresNivgvogfYWEJuWzyRKKMEsIAQYGA7yO2Ud3LRfIBIxx51ISZzmi0heAVH1ruAYGkWGQrDgpaLo2kxYIWthSJYfrIF+Rb0CWZYVn+cCGCgcD1kukzTnAx7vFsG7XFCdy7uI+6HjhIBngGFCXryGLqM+d44rim6EYSbIkQeR4nhR9qasgNHovyt4xLEBjEBMqgUnIhZggkCYAFTIKQIyqFREnIFaUA2iJ5DyQmQA
+    
