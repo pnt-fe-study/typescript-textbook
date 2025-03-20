@@ -343,3 +343,69 @@ const obj: Obj = {
 <br />
 
 # 3.5 forEach 만들기
+
+```ts
+[1, 2, 3].myForEach(() => {});
+
+interface Array<T> {
+  myForEach(callback: () => void): void;
+}
+
+// 위의 코드로 할 시 아래 코드에서 에러 발생!
+[1, 2, 3].myForEach((v, i, a) => {
+  console.log(v, i, a);
+}); // Argument of type '(v: any, i: any, a: any) => void' is not assignable to parameter of type '() => void'. Target signature provides too few arguments. Expected 3 or more, but got 0.
+```
+
+> 매개변수를 추가적으로 타이핑한다면?
+
+```ts
+[1, 2, 3].myForEach(() => {});
+
+interface Array<T> {
+  myForEach(callback: (v: number, i: number, a: number[]) => void): void;
+}
+```
+
+- 에러는 발생하지 않지만, 아래와 같은 다른 케이스 추가시 다시 에러가 발생한다.
+
+```ts
+["1", "2", "3"].myForEach((v) => {
+  console.log(v.slice(0));
+});
+
+[true, 2, "3"],
+  myForEach((v) => {
+    if (typeof v === "string") {
+      v.slice(0);
+    } else {
+      v.toFixed();
+    }
+  });
+
+// Error!
+// Property 'slice' does not exist on type 'number'.
+// Left side of comma operator is unused and has no side effects.
+// Cannot find name 'myForEach'.
+```
+
+- 각각 요소와 원본 배열 타입인 매개변수 v와 a가 모두 number 기반으로 고정되어 있기 때문이다.
+- 제네릭 타입으로 바꾸고, thisArgs?: any라는 두 번째 매개변수를 고려해야 한다.
+
+### this 타이핑까지 제대로 되도록 고려해보자.
+
+```ts
+interface Array<T> {
+  myForEach<K = Window>(
+    callback: (this: K, v: T, i: number, a: T[]) => void,
+    thisArg?: K
+  ): void;
+}
+```
+
+- 타입 매개변수 K를 선언한다.
+- myForEach<K = Window> 선언부로 K는 기본적으로 윈도우이다.
+- thisArg를 사용하지 않으면 this는 Window이다.
+- thisArg에 {a: "a"}를 넣은 테스트에서는 K가 {a: string}이 되므로 this도 {a: string}이다.
+
+> 타입스크립트 타입에러가 없더라도 실제 실행됨이 보장되지 않는다.
